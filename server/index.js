@@ -78,6 +78,11 @@ app.get('/', (req, res) => {
 });
 
 
+// Endpoint de salud para verificar el estado del servidor
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Servidor funcionando correctamente' });
+});
+
 io.on('connection', (socket) => {
   console.log(`🔌 Nuevo cliente conectado: ${socket.id}`);
 
