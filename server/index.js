@@ -4,17 +4,21 @@ import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 
 const app = express();
-app.use(cors()); // Habilita CORS para todas las rutas
+
+// --- CONFIGURACIÓN DE CORS ---
+// Habilitar CORS para aceptar cualquier origen.
+// app.use(cors()) es suficiente para las rutas HTTP de Express.
+app.use(cors());
 
 const server = http.createServer(app);
 
 const io = new SocketIOServer(server, {
   cors: {
-    origin: "*", // La URL de nuestro cliente React con Vite
+    // Para Socket.IO, especificamos explícitamente que acepte cualquier origen con "*".
+    origin: "*", 
     methods: ["GET", "POST"]
   }
 });
-
 
 // --- NUEVA RUTA VISUAL ---
 // Esta ruta servirá una página simple para verificar que el servidor está en línea.
@@ -27,7 +31,7 @@ app.get('/', (req, res) => {
     <!DOCTYPE html>
     <html lang="es">
     <head>
-        <meta charset="UTF-8">
+        <meta charset="UTF--8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Servidor Activo</title>
         <style>
@@ -70,6 +74,7 @@ app.get('/', (req, res) => {
             <h1>🚀 Servidor de WebSocket Activo</h1>
             <p>El backend para tu aplicación de chat está funcionando.</p>
             <p><strong>Path del Servidor:</strong> <code>${serverUrl}</code></p>
+            <p><strong>Configuración CORS:</strong> Abierta a cualquier origen.</p>
             <p><small>El puerto es gestionado automáticamente por Vercel.</small></p>
         </div>
     </body>
@@ -78,48 +83,43 @@ app.get('/', (req, res) => {
 });
 
 
-// Endpoint de salud para verificar el estado del servidor
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Servidor funcionando correctamente' });
-});
-
+// --- LÓGICA DEL CHAT CON SOCKET.IO ---
 io.on('connection', (socket) => {
   console.log(`🔌 Nuevo cliente conectado: ${socket.id}`);
 
-  // --- NUEVA LÓGICA DE SALAS ---
-
-  // Escuchar cuando un usuario quiere unirse a una sala
+  // Unirse a una sala
   socket.on('join:room', (roomCode) => {
-    // El método .join() suscribe el socket a la sala indicada
     socket.join(roomCode);
     console.log(`🙋‍♂️ Cliente ${socket.id} se unió a la sala: ${roomCode}`);
-    
-    // Opcional: Notificar a los demás en la sala que un nuevo usuario ha entrado
-    // 'socket.to(roomCode)' emite a todos en la sala EXCEPTO al que acaba de entrar
     socket.to(roomCode).emit('chat:message', {
       from: 'SISTEMA',
       body: `Un nuevo usuario se ha unido al chat.`
     });
   });
 
-  // --- LÓGICA DE MENSAJES MODIFICADA ---
-
-  // Ahora el evento de mensaje debe saber a qué sala enviar el mensaje
+  // Recibir y reenviar mensajes a la sala correcta
   socket.on('chat:message', (data) => {
-    const { room, ...messageData } = data; // Extraemos la sala del objeto de datos
-    console.log(`✉️ Mensaje recibido para la sala ${room}:`, messageData);
-
-    // El cambio más importante es aquí:
-    // En lugar de 'io.emit', usamos 'io.to(room).emit'
-    // Esto asegura que el mensaje solo se envíe a los clientes en esa sala específica.
-    io.to(room).emit('chat:message', messageData);
+    const { room, ...messageData } = data;
+    if (room) {
+      console.log(`✉️ Mensaje recibido para la sala ${room}:`, messageData);
+      io.to(room).emit('chat:message', messageData);
+    } else {
+      console.log(`⚠️ Mensaje recibido sin sala:`, messageData);
+    }
   });
 
+  // Desconexión de un cliente
   socket.on('disconnect', () => {
     console.log(`👋 Cliente desconectado: ${socket.id}`);
-    // Aquí podríamos añadir lógica para notificar que un usuario se fue de una sala
+    // Aquí podrías añadir lógica para notificar que un usuario se fue de una sala específica
   });
 });
 
+
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`🚀 Servidor escuchando en el puerto ${PORT}`));
+
+// Exporta la app para que Vercel la pueda usar.
+// En Vercel, no se usa el listen, sino que se exporta el handler.
+// Sin embargo, tener el listen() permite que funcione localmente.
+export default app;
