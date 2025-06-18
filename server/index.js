@@ -83,6 +83,11 @@ app.get('/', (req, res) => {
 });
 
 
+// --- ENDPOINT DE SALUD ---
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Servidor funcionando correctamente' });
+});
+
 // --- LÓGICA DEL CHAT CON SOCKET.IO ---
 io.on('connection', (socket) => {
   console.log(`🔌 Nuevo cliente conectado: ${socket.id}`);

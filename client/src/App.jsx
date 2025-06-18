@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
  
-const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000');
+const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:4000');
 function App() {
   const [nickname, setNickname] = useState('');
   const [room, setRoom] = useState(''); // <-- NUEVO: Estado para el código de la sala
